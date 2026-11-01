@@ -1,0 +1,115 @@
+Private Declare Function N_snapshot Lib "buoy_fontkit" Alias "bfk_snapshot" () As Ptr
+Private Declare Function N_snapshot_error Lib "buoy_fontkit" Alias "bfk_snapshot_error" (handle As Ptr) As String
+Private Declare Function N_count Lib "buoy_fontkit" Alias "bfk_count" (handle As Ptr) As Integer
+Private Declare Function N_field Lib "buoy_fontkit" Alias "bfk_field" (handle As Ptr, index As Integer, field As Integer) As String
+Private Declare Sub N_snapshot_free Lib "buoy_fontkit" Alias "bfk_snapshot_free" (handle As Ptr)
+Private Declare Function N_register Lib "buoy_fontkit" Alias "bfk_register" (filePath As String) As Ptr
+Private Declare Function N_registration_error Lib "buoy_fontkit" Alias "bfk_registration_error" (handle As Ptr) As String
+Private Declare Function N_close Lib "buoy_fontkit" Alias "bfk_close" (handle As Ptr) As Integer
+Private Declare Function N_can_unload Lib "buoy_fontkit" Alias "bfk_can_unload" () As Integer
+Private Declare Function N_backend Lib "buoy_fontkit" Alias "bfk_backend" () As String
+
+Public Class FontKitException Inherits Exception
+    Public Sub Constructor(message As String)
+        Super.Constructor(message, 0)
+    End Sub
+End Class
+
+''' Native metadata; empty fields mean the backend did not expose that value.
+Public Class FontFaceInfo
+    Public Property FamilyName As String
+    Public Property FaceName As String
+    Public Property PostScriptName As String
+End Class
+
+Public Function FontKitBackend() As String
+    Return N_backend()
+End Function
+
+Public Function FontKitHasPostScriptMetadata() As Boolean
+    #If TargetWindows Then
+        Return False
+    #Else
+        Return True
+    #End If
+End Function
+
+Public Function FontKitCanUnload() As Boolean
+    Return N_can_unload() <> 0
+End Function
+
+''' No rendering-backend visibility guarantee follows from registration.
+Public Function FontKitGuaranteesCanvasVisibility() As Boolean
+    Return False
+End Function
+
+''' Snapshot of native faces; order, localization, and duplicates are native-defined.
+Public Function FontKitFaces() As Array Of FontFaceInfo
+    Dim handle As Ptr = N_snapshot()
+    Dim message As String = N_snapshot_error(handle)
+    If message <> "" Then
+        N_snapshot_free(handle)
+        Throw New FontKitException(message)
+    End If
+    Dim faces As Array Of FontFaceInfo = []
+    Try
+        For i As Integer = 0 To N_count(handle) - 1
+            Dim face As New FontFaceInfo()
+            face.FamilyName = N_field(handle, i, 0)
+            face.FaceName = N_field(handle, i, 1)
+            face.PostScriptName = N_field(handle, i, 2)
+            Array.Append(faces, face)
+        Next
+    Finally
+        N_snapshot_free(handle)
+    End Try
+    Return faces
+End Function
+
+''' Exact case-sensitive native family-name presence, without fallback or aliases.
+Public Function FontKitHasFamily(familyName As String) As Boolean
+    If familyName = "" Then Return False
+    For Each face As FontFaceInfo In FontKitFaces()
+        If String.Compare(face.FamilyName, familyName, True) = 0 Then Return True
+    Next
+    Return False
+End Function
+
+''' Keep alive while using the font. Serialize all FontKit calls on one thread.
+Public Class FontRegistration
+    Private Property Handle As Ptr
+
+    Public Sub Constructor(filePath As String)
+        If filePath = "" Then Throw New InvalidArgumentException("Font file filePath is empty")
+        Dim encoded As Bytes = Bytes.FromString(filePath, Text.Encodings.UTF8)
+        For i As Integer = 0 To encoded.Count - 1
+            If encoded.Item(i) = 0 Then Throw New InvalidArgumentException("Font file filePath contains NUL")
+        Next
+        Dim handle As Ptr = N_register(filePath)
+        Dim message As String = N_registration_error(handle)
+        If message <> "" Then
+            N_close(handle)
+            Throw New FontKitException(message)
+        End If
+        Me.Handle = handle
+    End Sub
+
+    Public Property IsOpen As Boolean
+        Get
+            Return Me.Handle <> Nil
+        End Get
+    End Property
+
+    ''' Idempotent; native unregistration failures throw and leave the handle open.
+    Public Sub Close()
+        If Me.Handle = Nil Then Return
+        If N_close(Me.Handle) = 0 Then Throw New FontKitException(N_registration_error(Me.Handle))
+        Me.Handle = Nil
+    End Sub
+
+    Public Sub Destructor()
+        ' Destructors cannot report failure; use explicit Close to observe failures.
+        If Me.Handle <> Nil Then N_close(Me.Handle)
+        Me.Handle = Nil
+    End Sub
+End Class

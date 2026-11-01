@@ -1,0 +1,1 @@
+{"schema":1,"name":"fontkit","version":"0.1.0","description":"Native font discovery and process-local font registration with explicit backend and lifetime capabilities","libraries":[{"libName":"buoy_fontkit","system":false,"minVersion":"0.1.0"}]}

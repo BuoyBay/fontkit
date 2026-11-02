@@ -6,7 +6,7 @@ measure text, shape text, or install fonts for other applications.
 
 ## API
 
-Import `fontkit`. See `tests/fontkit_test.bui` for a compiler-checked usage example.
+Import `fontkit` to use the API below.
 
 | API | Behavior |
 | --- | --- |
@@ -84,50 +84,16 @@ are visibility constraints, not successful-rendering assertions.
 For explicit Windows private-font Picture rendering, use the separate FontCanvas
 package; it owns its GDI+ collection and requires no runtime injection.
 
-## Build and verify
+## Native build requirements
 
-Run from the repository root:
+Native builds require a C compiler and the matching platform development inputs:
+Fontconfig, PangoCairo and PangoFT2 on Linux; the Apple SDK on macOS; or GDI32 and a
+matching Windows compiler/import-library toolchain. Compile the bridge for each
+deployment architecture before sealing its runtime slice.
 
-```
-python3 tools/build_fontkit.py
-```
-
-The builder compiles the host native bridge, checks the Buoy module for all six
-desktop targets, then seals `packages/fontkit-0.1.0.buipkg` and copies it to `dist/`.
-It stages only native binaries whose receipt matches the current bridge source,
-and verifies their binary architecture. It does not fabricate missing slices.
-Use `--native-only`, `--seal-only`, `--target`, and `--cc` for native/cross toolchain
-builds. `BUOY`, `BUOY_PACKAGER`, and `CC` override tools; Linux cross builds also
-require target-specific pkg-config paths/libraries. Linux needs Fontconfig,
-PangoCairo and PangoFT2 development packages. macOS needs the Apple SDK;
-Windows needs GDI32 and a matching C compiler/import-library toolchain.
-
-The produced archive contains all **six desktop architecture slices**: x86-64
-and ARM64 Linux, Windows and macOS. Linux x86-64, Windows x86-64 and macOS ARM64
-consumers have executed on their actual operating systems. Linux ARM64 native
-libraries and the full Buoy consumer passed under userspace QEMU on x86-64;
-this is emulated execution, not native ARM hardware. Windows ARM64 DLL/import
-library and a sealed Buoy consumer cross-linked successfully but were not run.
-Both macOS slices were SDK-built; Intel macOS execution remains unverified
-because Rosetta is unavailable. See `tests/font_arm_evidence/README.md` for
-reproducible isolated ARM build/execution steps and exact scope.
-All six Buoy compiler checks validate syntax/types only; native evidence is
-separate and does not establish rendering-backend visibility.
-
-Maintainers run the private validation suite before release. See the repository README for public build instructions.
-
-The verifier checks the module and test source on six targets, builds a consumer
-against the sealed archive, and runs host tests for enumeration, copied metadata,
-unknown family rejection, invalid/missing paths, fixture registration,
-duplicate canonical path leases, repeated Close, destructor ownership and the
-reported unload behavior. Linux additionally primes a default Pango font map
-before registration and checks that the existing map discovers the new family.
-The fixture is an original 1 KB CC0 TTF with a unique family name; its hash is
-pinned in the verifier. `fixtures/generate.py` regenerates it with
-`fonttools==4.60.1`, which is not needed to build or run the package.
-
-No upstream compiler/runtime sources were modified. The package cannot fix
-runtime-owned GDI+ collections or guarantee cache refresh in every drawing backend.
+The package cannot change runtime-owned GDI+ font collections or guarantee that
+every drawing backend refreshes its cache after registration. Use the reported
+registration/measurement capabilities and keep lifetime ownership explicit.
 
 ## Native references
 

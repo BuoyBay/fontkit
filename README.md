@@ -1,6 +1,6 @@
 # Discover fonts and register process-local font files
 
-Font discovery and process-local font-file registration for Buoy 0.72.0.
+Font discovery and process-local font-file registration.
 This package owns discovery/loading only; it does not choose fallback fonts,
 measure text, shape text, or install fonts for other applications.
 
@@ -41,7 +41,6 @@ On your own machine, install Buoy and run:
 buoy ai init --both
 ```
 
-The generated agent files and editor settings stay local and are ignored by Git.
 
 ## Contributing
 

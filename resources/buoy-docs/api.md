@@ -10,5 +10,4 @@ Native font discovery and process-local font registration with explicit backend 
 
 [Typed API](reference.md) · [Getting started](getting-started.md)
 
-
 [Full typed API: properties, parameters, defaults, and returns](typed-api.md)

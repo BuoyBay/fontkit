@@ -43,8 +43,6 @@ Native metadata; empty fields mean the backend did not expose that value.
 | `FaceName` | `String` | No | No | — | — |
 | `PostScriptName` | `String` | No | No | — | — |
 
-## FontKit functions
-
 ### FontKitBackend
 
 `Public Function FontKitBackend() As String`

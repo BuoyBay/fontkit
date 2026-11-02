@@ -1,1 +1,1 @@
-{"schema":1,"name":"fontkit","version":"0.1.0","description":"Installed fonts plus process-local font files","libraries":[{"libName":"buoy_fontkit","system":false,"minVersion":"0.1.0"}]}
+{"schema":1,"name":"fontkit","version":"0.1.0","description":"Installed and process-local fonts","libraries":[{"libName":"buoy_fontkit","system":false,"minVersion":"0.1.0"}]}

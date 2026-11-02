@@ -1,4 +1,4 @@
-# Discover fonts and register process-local font files
+# Installed fonts plus process-local font files
 
 Font discovery and process-local font-file registration.
 This package owns discovery/loading only; it does not choose fallback fonts,
